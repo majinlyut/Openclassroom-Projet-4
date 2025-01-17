@@ -1,0 +1,31 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongo_container
+    volumes:
+      - mongo_data:/data/db  # Volume pour la base de données MongoDB
+    ports:
+      - "27017:27017"  # Exposer MongoDB en local
+    networks:
+      - app_network
+
+  app:
+    build:
+      context: .  # Le contexte est la racine
+      dockerfile: Dockerfile  # Spécifier que le Dockerfile est à la racine
+    container_name: app_container
+    volumes:
+      - ./data:/app/data  # Monte le dossier local ./data dans /app/data dans le conteneur
+    depends_on:
+      - mongodb
+    networks:
+      - app_network
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017  # URI MongoDB à utiliser dans le script
+
+volumes:
+  mongo_data:  # Volume persistant pour MongoDB
+
+networks:
+  app_network:
+    driver: bridge
