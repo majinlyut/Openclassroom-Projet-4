@@ -1,132 +1,91 @@
+import os
 import pytest
 import pandas as pd
 from pymongo import MongoClient
-from datetime import datetime
-from io import StringIO
+import random
 
-# Connexion à MongoDB
-@pytest.fixture(scope="module")
-def mongo_client():
-    client = MongoClient('mongodb://localhost:27017/')
-    yield client
-    client.close()
+# Connexion à la base de données MongoDB
+mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+client = MongoClient(mongo_uri)
+db = client['Projet4']
+collection = db['patients']
 
-@pytest.fixture(scope="module")
-def mongo_collection(mongo_client):
-    db = mongo_client['Projet4']
-    collection = db['patients']
-    collection.delete_many({})  # Nettoyer la collection avant chaque test
-    return collection
+# Chemin du fichier CSV nettoyé
+cleaned_file_path = "data/cleaned_healthcare_dataset.csv"
 
-@pytest.fixture(scope="module")
-def sample_data():
-    return [
-        {"Name": "John Doe", "Hospital": ["City Hospital"], "Date of Admission": "2025-01-01", "Discharge Date": "2025-01-10", "Billing Amount": 150.50},
-        {"Name": "Jane Smith", "Hospital": ["Green Hospital"], "Date of Admission": "2025-01-03", "Discharge Date": "2025-01-08", "Billing Amount": 200.75}
-    ]
+# Fonction pour lire le CSV nettoyé
+def read_cleaned_csv():
+    return pd.read_csv(cleaned_file_path, delimiter=";")
 
-### TEST CRUD OPERATIONS
-def test_crud_operations(mongo_collection, sample_data):
-    # CREATE
-    mongo_collection.insert_many(sample_data)
-    assert mongo_collection.count_documents({}) == 2
+# Fonction pour récupérer tous les documents de la collection
+def get_mongo_documents():
+    return list(collection.find())
 
-    # READ
-    john = mongo_collection.find_one({"Name": "John Doe"})
-    assert john["Billing Amount"] == 150.50
+def test_column_and_row_count():
+    # Lire le CSV nettoyé
+    data = read_cleaned_csv()
 
-    # UPDATE
-    mongo_collection.update_one({"Name": "John Doe"}, {"$set": {"Billing Amount": 175.00}})
-    john = mongo_collection.find_one({"Name": "John Doe"})
-    assert john["Billing Amount"] == 175.00
+    # Liste des colonnes attendues (sans la colonne '_id')
+    expected_columns = ['Name', 'Age', 'Gender', 'Blood Type', 'Medical Condition', 'Date of Admission',
+                        'Doctor', 'Hospital', 'Insurance Provider', 'Billing Amount', 'Room Number', 
+                        'Admission Type', 'Discharge Date', 'Medication', 'Test Results']
+    
+    # Récupérer les documents de MongoDB
+    mongo_documents = get_mongo_documents()
 
-    # DELETE
-    mongo_collection.delete_one({"Name": "Jane Smith"})
-    assert mongo_collection.count_documents({}) == 1
+    # Exclure la colonne '_id' des documents MongoDB
+    mongo_columns = [col for col in mongo_documents[0].keys() if col != '_id']
+    
+    # Vérifier que les colonnes MongoDB correspondent exactement aux colonnes attendues
+    assert sorted(mongo_columns) == sorted(expected_columns), f"Les colonnes MongoDB ne correspondent pas aux colonnes attendues : {mongo_columns} vs {expected_columns}"
+    
+    # Vérifier le nombre de lignes (en excluant le '_id' dans MongoDB)
+    assert len(data) == len(mongo_documents), f"Le nombre de lignes ne correspond pas : CSV ({len(data)}) vs MongoDB ({len(mongo_documents)})"
 
-### TEST INTEGRITY BEFORE AND AFTER MIGRATION
-@pytest.fixture(scope="module")
-def csv_data():
-    # Exemple de données CSV simulées
-    csv_content = """Name;Hospital;Date of Admission;Discharge Date;Billing Amount
-    John Doe;City Hospital;01/01/2025;10/01/2025;150.50
-    Jane Smith;Green Hospital;03/01/2025;08/01/2025;200.75"""
-    data = pd.read_csv(StringIO(csv_content), delimiter=";")
-    return data
+def test_random_row_integrity():
+    # Lire le CSV nettoyé
+    data = read_cleaned_csv()
 
-def test_data_integrity_before_migration(csv_data):
-    # Vérification des colonnes
-    expected_columns = {"Name", "Hospital", "Date of Admission", "Discharge Date", "Billing Amount"}
-    assert set(csv_data.columns) == expected_columns
+    # Récupérer les documents de MongoDB
+    mongo_documents = get_mongo_documents()
 
-    # Vérification des doublons
-    assert csv_data.duplicated().sum() == 0
+    # Choisir une ligne aléatoire du CSV
+    random_row = data.sample(n=1).iloc[0]  # n=1 pour obtenir une seule ligne au hasard
 
-    # Vérification des valeurs manquantes
-    assert csv_data.isnull().sum().sum() == 0
+    # Convertir la ligne en dictionnaire pour comparaison
+    row_dict = random_row.to_dict()
 
-    # Vérification des types
-    assert csv_data["Billing Amount"].dtype == float
+    # Trouver le document MongoDB correspondant
+    mongo_doc = next(
+        (doc for doc in mongo_documents if doc['Name'] == random_row['Name'] and doc['Billing Amount'] == random_row['Billing Amount']),
+        None
+    )
 
-@pytest.fixture(scope="module")
-def data_after_migration(mongo_collection):
-    return pd.DataFrame(list(mongo_collection.find()))
+    # Vérifier si le document existe
+    assert mongo_doc is not None, f"Le document correspondant à {random_row['Name']} avec le montant {random_row['Billing Amount']} n'a pas été trouvé dans MongoDB"
+    
+    # Vérifier si les autres champs correspondent
+    for column in data.columns:
+        assert mongo_doc[column] == random_row[column], f"La valeur pour {column} ne correspond pas pour {random_row['Name']}"
 
-def test_data_integrity_after_migration(data_after_migration):
-    # Vérification des colonnes
-    expected_columns = {"_id", "Name", "Hospital", "Date of Admission", "Discharge Date", "Billing Amount"}
-    assert set(data_after_migration.columns) >= expected_columns
 
-    # Vérification des doublons
-    assert data_after_migration.duplicated().sum() == 0
+# Test pour vérifier si la somme des montants de facturation est la même dans MongoDB et le CSV
+def test_billing_sum():
+    # Lire le CSV nettoyé
+    data = read_cleaned_csv()
 
-    # Vérification des valeurs manquantes
-    assert data_after_migration.isnull().sum().sum() == 0
+    # Récupérer les documents de MongoDB
+    mongo_documents = get_mongo_documents()
 
-    # Vérification des types
-    assert data_after_migration["Billing Amount"].dtype == float
+    # Calculer la somme des Billing Amount dans le CSV
+    csv_billing_sum = data['Billing Amount'].sum()
 
-### TEST AUTOMATISÉ : CONVERT DATE FUNCTION
-def convert_date_to_iso(date_str):
-    try:
-        return datetime.strptime(date_str, "%d/%m/%Y")
-    except ValueError:
-        return None
+    # Calculer la somme des Billing Amount dans MongoDB
+    mongo_billing_sum = sum(doc['Billing Amount'] for doc in mongo_documents)
 
-def test_convert_date_to_iso():
-    # Date valide
-    valid_date = "10/01/2025"
-    assert convert_date_to_iso(valid_date) == datetime(2025, 1, 10)
+    # Arrondir les sommes à 2 décimales
+    csv_billing_sum = round(csv_billing_sum, 2)
+    mongo_billing_sum = round(mongo_billing_sum, 2)
 
-    # Date invalide
-    invalid_date = "32/01/2025"
-    assert convert_date_to_iso(invalid_date) is None
-
-### TEST AUTOMATISÉ : CLEAN AND SPLIT FUNCTION
-def clean_and_split(text):
-    text = text.lstrip("and ").strip()  # Supprimer "and" au début
-    text = text.rstrip(",")  # Supprimer la virgule finale
-    return [item.strip() for item in text.replace(" and ", ",").split(",")]
-
-def test_clean_and_split():
-    text = "John, Jane and Jack, Mary"
-    expected_output = ["John", "Jane", "Jack", "Mary"]
-    assert clean_and_split(text) == expected_output
-
-    text = "and John, Jane, Jack, Mary"
-    expected_output = ["John", "Jane", "Jack", "Mary"]
-    assert clean_and_split(text) == expected_output
-
-    text = "John, Jane, Jack, Mary,"
-    expected_output = ["John", "Jane", "Jack", "Mary"]
-    assert clean_and_split(text) == expected_output
-
-### TEST AUTOMATISÉ : ROUND BILLING AMOUNT
-def test_round_billing_amount():
-    data = pd.DataFrame({
-        'Billing Amount': [100.12345, 50.6789, 123.4567]
-    })
-    data['Billing Amount'] = data['Billing Amount'].round(2)
-    assert data['Billing Amount'][0] == 100.12
-    assert data['Billing Amount'][1] == 50.68
-    assert data['Billing Amount'][2] == 123.46
+    # Vérifier si la somme des montants de facturation est la même
+    assert csv_billing_sum == mongo_billing_sum, f"La somme des montants de facturation ne correspond pas : CSV ({csv_billing_sum}) vs MongoDB ({mongo_billing_sum})"

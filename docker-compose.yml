@@ -2,12 +2,15 @@ services:
   mongodb:
     image: mongo:latest
     container_name: mongo_container
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin  # Crée l'utilisateur administrateur
+      MONGO_INITDB_ROOT_PASSWORD: admin_password  # Mot de passe de l'administrateur
     volumes:
       - mongo_data:/data/db  # Volume pour la base de données MongoDB
     ports:
       - "27017:27017"  # Exposer MongoDB en local
     networks:
-      - app_network
+      - app_network  # Associer au réseau
 
   app:
     build:
@@ -17,15 +20,15 @@ services:
     volumes:
       - ./data:/app/data  # Monte le dossier local ./data dans /app/data dans le conteneur
     depends_on:
-      - mongodb
+      - mongodb  # S'assurer que MongoDB est prêt avant de démarrer l'application
     networks:
-      - app_network
+      - app_network  # Associer au même réseau
     environment:
-      - MONGO_URI=mongodb://mongodb:27017  # URI MongoDB à utiliser dans le script
+      - MONGO_URI=mongodb://admin:admin_password@mongodb:27017/admin  # URI MongoDB pour se connecter avec authentification
 
 volumes:
   mongo_data:  # Volume persistant pour MongoDB
 
 networks:
   app_network:
-    driver: bridge
+    driver: bridge  # Utilisation du réseau de type "bridge"

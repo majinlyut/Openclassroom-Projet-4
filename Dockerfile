@@ -16,5 +16,5 @@ COPY ./app/migration.py /app/
 # Copier le dossier data (dossier contenant des fichiers CSV, etc.)
 COPY ./data /app/data
 
-# Exposer le point d'entrée
+# Exécuter seulement le script de migration
 CMD ["python", "migration.py"]
