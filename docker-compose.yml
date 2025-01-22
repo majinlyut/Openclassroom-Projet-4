@@ -3,18 +3,21 @@ services:
     image: mongo:latest
     container_name: mongo_container
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin  # Crée l'utilisateur administrateur
-      MONGO_INITDB_ROOT_PASSWORD: admin_password  # Mot de passe de l'administrateur
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}  # Utilise la variable MONGO_USER du fichier .env
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}  # Utilise la variable MONGO_PASS du fichier .env
     volumes:
-      - mongo_data:/data/db  # Volume pour la base de données MongoDB
+      - mongo_data:/data/db  # Volume persistant pour la base de données MongoDB
+
     ports:
-      - "27017:27017"  # Exposer MongoDB en local
+      - "27017:27017"  # Expose MongoDB en local
     networks:
       - app_network  # Associer au réseau
+    env_file:
+      - .env  # Charger les variables d'environnement depuis le fichier .env
 
   app:
     build:
-      context: .  # Le contexte est la racine
+      context: .  # Le contexte est la racine du projet
       dockerfile: Dockerfile  # Spécifier que le Dockerfile est à la racine
     container_name: app_container
     volumes:
@@ -24,7 +27,9 @@ services:
     networks:
       - app_network  # Associer au même réseau
     environment:
-      - MONGO_URI=mongodb://admin:admin_password@mongodb:27017/admin  # URI MongoDB pour se connecter avec authentification
+      - MONGO_URI=${MONGO_URI}  # Utilisation des variables d'environnement pour construire l'URI MongoDB
+    env_file:
+      - .env  # Charger les variables d'environnement depuis le fichier .env
 
 volumes:
   mongo_data:  # Volume persistant pour MongoDB

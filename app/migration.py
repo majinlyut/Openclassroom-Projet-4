@@ -2,7 +2,7 @@ import os
 from pymongo import MongoClient
 import pandas as pd
 
-def migrate_to_mongo(input_file, mongo_uri="mongodb://mongodb:27017/", db_name="Projet4", collection_name="patients"):
+def migrate_to_mongo(input_file, mongo_uri = os.getenv("MONGO_URI"), db_name="Projet4", collection_name="patients"):
     # Connexion à MongoDB
     client = MongoClient(mongo_uri)
     db = client[db_name]

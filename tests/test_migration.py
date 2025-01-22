@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import random
 
 # Connexion à la base de données MongoDB
-mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+mongo_uri = "mongodb://admin:admin_password@localhost:27017/admin?retryWrites=true&loadBalanced=false&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-1&3t.uriVersion=3&3t.connection.name=admin&3t.databases=admin&3t.alwaysShowAuthDB=true&3t.alwaysShowDBFromUserRole=true"
 client = MongoClient(mongo_uri)
 db = client['Projet4']
 collection = db['patients']
