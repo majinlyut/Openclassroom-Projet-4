@@ -100,8 +100,6 @@ Cela permet aux utilisateurs d’accéder aux données sans pouvoir modifier quo
 
 
 
-Ce projet de migration des données vers MongoDB et son déploiement sur AWS permet au client de bénéficier d’une solution évolutive, sécurisée et facilement maintenable. Grâce à Docker et AWS, le projet garantit une gestion des données de manière optimale et scalable.
 
-License
 
-Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+
