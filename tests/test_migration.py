@@ -5,7 +5,7 @@ from pymongo import MongoClient
 import random
 
 # Connexion à la base de données MongoDB
-mongo_uri = "mongodb://admin:admin_password@localhost:27017/admin?retryWrites=true&loadBalanced=false&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-1&3t.uriVersion=3&3t.connection.name=admin&3t.databases=admin&3t.alwaysShowAuthDB=true&3t.alwaysShowDBFromUserRole=true"
+mongo_uri = "mongodb://admin:admin_password@localhost:27017/admin?authSource=admin"
 client = MongoClient(mongo_uri)
 db = client['Projet4']
 collection = db['patients']
@@ -39,7 +39,7 @@ def test_column_and_row_count():
     # Vérifier que les colonnes MongoDB correspondent exactement aux colonnes attendues
     assert sorted(mongo_columns) == sorted(expected_columns), f"Les colonnes MongoDB ne correspondent pas aux colonnes attendues : {mongo_columns} vs {expected_columns}"
     
-    # Vérifier le nombre de lignes (en excluant le '_id' dans MongoDB)
+    # Vérifier le nombre de lignes 
     assert len(data) == len(mongo_documents), f"Le nombre de lignes ne correspond pas : CSV ({len(data)}) vs MongoDB ({len(mongo_documents)})"
 
 def test_random_row_integrity():
