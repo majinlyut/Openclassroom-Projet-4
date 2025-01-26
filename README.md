@@ -22,7 +22,7 @@ Technologies Utilisées
 
 Structure du Projet
 
-.
+.  
 ├── app/  
 │   ├── migration.py          # Script de migration des données vers MongoDB  
 │   ├──clean_data.py          #Script nettoyage  
