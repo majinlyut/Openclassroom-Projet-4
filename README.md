@@ -23,17 +23,17 @@ Technologies Utilisées
 Structure du Projet
 
 .
-├── app/
-│   ├── migration.py          # Script de migration des données vers MongoDB
-│   ├──clean_data.py          #Script nettoyage
-├── data/
-│   └── healthcare_dataset.csv # Dataset des patients (CSV)
-├── tests/
-│   └──test_migration.py      #Script test migration
-├── Dockerfile                # Fichier de configuration Docker pour l'application
-├── docker-compose.yml        # Fichier Docker Compose pour orchestrer les conteneurs
-├── requirements.txt          # Liste des dépendances Python à installer
-└── README.md                 # Documentation du projet
+├── app/  
+│   ├── migration.py          # Script de migration des données vers MongoDB  
+│   ├──clean_data.py          #Script nettoyage  
+├── data/  
+│   └── healthcare_dataset.csv # Dataset des patients (CSV)  
+├── tests/  
+│   └──test_migration.py      #Script test migration  
+├── Dockerfile                # Fichier de configuration Docker pour l'application  
+├── docker-compose.yml        # Fichier Docker Compose pour orchestrer les conteneurs  
+├── requirements.txt          # Liste des dépendances Python à installer  
+└── README.md                 # Documentation du projet  
 
 Installation
 
